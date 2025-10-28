@@ -1,4 +1,5 @@
 streamlit
+openai
 pydub
 validators  # Add this line
 # requests    # Add later for general URL fetching
