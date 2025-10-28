@@ -1,7 +1,7 @@
 streamlit
 openai
 pydub
-validators  # Add this line
-# requests    # Add later for general URL fetching
-# yt-dlp      # Add later specifically for YouTube/various platforms
-# feedparser  # Add later if parsing podcast RSS feeds
+validators
+requests
+yt-dlp
+feedparser
