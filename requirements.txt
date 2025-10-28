@@ -1,0 +1,3 @@
+streamlit
+pydub  # Good for handling audio files in Python
+# You will add 'transformers' or your chosen LLM/API library later
