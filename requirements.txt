@@ -1,6 +1,5 @@
 streamlit
 openai
-pydub
 validators
 requests
 yt-dlp
