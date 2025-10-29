@@ -1,6 +1,10 @@
 streamlit
 openai
+pydub==0.25.1
 validators
 requests
 yt-dlp
 feedparser
+# Alternative audio processing if pydub fails
+librosa
+soundfile

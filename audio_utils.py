@@ -1,8 +1,31 @@
-from pydub import AudioSegment
+# Fix for pydub Python 3.13 compatibility
+import sys
 import math
 import tempfile
 import openai
 import os
+
+# Import fallback libraries
+try:
+    import librosa
+    import soundfile as sf
+    LIBROSA_AVAILABLE = True
+except ImportError:
+    LIBROSA_AVAILABLE = False
+
+# Try to fix pydub import issue
+try:
+    if sys.version_info >= (3, 13):
+        try:
+            import pyaudioop
+            sys.modules['audioop'] = pyaudioop
+        except ImportError:
+            pass
+    from pydub import AudioSegment
+    PYDUB_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: pydub not available ({e}). Using alternative audio processing.")
+    PYDUB_AVAILABLE = False
 
 def chunk_audio(audio_file_path, chunk_length_ms=60000):  # e.g., 1 min chunks
     """
@@ -16,21 +39,47 @@ def chunk_audio(audio_file_path, chunk_length_ms=60000):  # e.g., 1 min chunks
         list: List of temporary file paths for each chunk
     """
     try:
-        audio = AudioSegment.from_file(audio_file_path)
-        total_length_ms = len(audio)
-        num_chunks = math.ceil(total_length_ms / chunk_length_ms)
-        chunk_files = []
-        
-        for i in range(num_chunks):
-            start_time = i * chunk_length_ms
-            end_time = min((i + 1) * chunk_length_ms, total_length_ms)
-            chunk = audio[start_time:end_time]
+        if PYDUB_AVAILABLE:
+            # Use pydub for chunking
+            audio = AudioSegment.from_file(audio_file_path)
+            total_length_ms = len(audio)
+            num_chunks = math.ceil(total_length_ms / chunk_length_ms)
+            chunk_files = []
             
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
-            chunk.export(temp_file.name, format="wav")
-            chunk_files.append(temp_file.name)
+            for i in range(num_chunks):
+                start_time = i * chunk_length_ms
+                end_time = min((i + 1) * chunk_length_ms, total_length_ms)
+                chunk = audio[start_time:end_time]
+                
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
+                chunk.export(temp_file.name, format="wav")
+                chunk_files.append(temp_file.name)
+                
+            return chunk_files
             
-        return chunk_files
+        elif LIBROSA_AVAILABLE:
+            # Fallback to librosa for chunking
+            y, sr = librosa.load(audio_file_path)
+            chunk_length_samples = int(chunk_length_ms * sr / 1000)
+            total_samples = len(y)
+            num_chunks = math.ceil(total_samples / chunk_length_samples)
+            chunk_files = []
+            
+            for i in range(num_chunks):
+                start_sample = i * chunk_length_samples
+                end_sample = min((i + 1) * chunk_length_samples, total_samples)
+                chunk = y[start_sample:end_sample]
+                
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
+                sf.write(temp_file.name, chunk, sr)
+                chunk_files.append(temp_file.name)
+                
+            return chunk_files
+            
+        else:
+            print("Error: No audio processing library available")
+            return []
+            
     except Exception as e:
         print(f"Error chunking audio: {e}")
         return []
