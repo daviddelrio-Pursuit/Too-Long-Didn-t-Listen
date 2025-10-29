@@ -1,4 +1,3 @@
-from pydub import AudioSegment
 import math
 import tempfile
 import openai
@@ -16,6 +15,19 @@ def chunk_audio(audio_file_path, chunk_length_ms=60000):  # e.g., 1 min chunks
         list: List of temporary file paths for each chunk
     """
     try:
+        # Import pydub lazily so import-time failures (missing system deps on some hosts)
+        # don't crash the whole app. Provide a clear message if pydub/ffmpeg is not available.
+        try:
+            from pydub import AudioSegment
+        except Exception as e:
+            # Print a helpful message and return an empty list so the caller can handle it.
+            print(
+                "pydub import failed. Ensure 'pydub' is in requirements.txt and that ffmpeg is installed on the host. "
+                "On Streamlit Community Cloud add a file named 'packages.txt' with a line: ffmpeg. "
+                f"Original error: {e}"
+            )
+            return []
+
         audio = AudioSegment.from_file(audio_file_path)
         total_length_ms = len(audio)
         num_chunks = math.ceil(total_length_ms / chunk_length_ms)
